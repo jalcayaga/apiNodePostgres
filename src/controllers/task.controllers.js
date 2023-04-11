@@ -2,11 +2,17 @@ const pool = require("../dbPG");
 
 // consultando todas las tareas
 const getAllTasks = async (req, res) => {
-  res.send("Retrieven a list of task");
+  try {
+    const allTasks = await pool.query("SELECT * FROM task");
+    res.json(allTasks.rows);
+  } catch (error) {
+    console.log(error.message);
+    res.send("error a list of task");
+  }
 };
 
 //consultando una unica tarea
-const getTask = async (req, res) => {
+async function getTask(req, res) {
   try {
     const { id } = req.params;
 
@@ -21,7 +27,7 @@ const getTask = async (req, res) => {
   } catch (error) {
     console.log(error.message);
   }
-};
+}
 
 // creando tarea
 const createTask = async (req, res) => {
@@ -46,12 +52,19 @@ const deleteTask = async (req, res) => {
     return res.status(404).json({
       message: "Task not found",
     });
-return res.sendStatus(204)
-  console.log(result);
+  return res.sendStatus(204);
 };
 
 // editando tarea
-const updateTask = (req, res) => {
+const updateTask = async (req, res) => {
+  const { id } = req.params;
+  const { title, description } = req.body;
+
+  const result = await pool.query(
+    "UPDATE task SET title = $1, description = $2 WHERE id = $3",
+    [title, description, id]
+  );
+
   res.send("updating a task");
 };
 module.exports = {
