@@ -1,94 +1,90 @@
-const pool = require("../dbPG");
 
-// consultando todas las tareas
-const getAllTasks = async (req, res) => {
+const pool = require('../dbPG');
+
+// Retrieving all tasks
+const getAllTasks = async (req, res, next) => {
   try {
-    const allTasks = await pool.query("SELECT * FROM task");
-    res.json(allTasks.rows);
-  } catch (error) {
-    console.log(error.message);
-    res.send("error a list of task");
+    const allTasks = await pool.query('SELECT * FROM task');
+    res.status(200).json(allTasks.rows);
+} catch (error) {
+    console.error(error.message);
+    next(error);
   }
 };
 
-//consultando una unica tarea
-async function getTask(req, res) {
+// Retrieving a single task
+const getTask = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const result = await pool.query("SELECT * FROM task WHERE id = $1", [id]);
+    const result = await pool.query('SELECT * FROM task WHERE id = $1', [id]);
 
     if (result.rows.length === 0)
       return res.status(404).json({
-        message: "Task not found",
+        message: 'Task not found',
       });
 
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.log(error.message);
+    res.status(200).json(result.rows[0]);
+} catch (error) {
+    console.error(error.message);
+    next(error);
   }
-}
+};
 
-// creando tarea
-const createTask = async (req, res) => {
+// Creating a task
+const createTask = async (req, res, next) => {
   const { title, description } = req.body;
 
-  const result = await pool.query(
-    "INSERT INTO task (title, description) VALUES ($1, $2)",
-    [title, description]
-  );
+  try {
+    const result = await pool.query('INSERT INTO task (title, description) VALUES ($1, $2) RETURING *', [
+      title,
+      description,
+    ]);
 
-  console.log(result);
-  res.send("Creating a task");
+    res.status(201).json(result.rows[0]);
+} catch (error) {
+    console.error(error.message);
+    next(error);
+  }
 };
 
-//eliminando tarea
-const deleteTask = async (req, res) => {
+// Updating a task
+const updateTask = async (req, res, next) => {
+  const { id } = req.params;
+  const { title, description } = req.body;
+
+  try {
+    await pool.query('UPDATE task SET title = $1, description = $2 WHERE id = $3', [
+      title,
+      description,
+      id,
+    ]);
+
+    res.status(200).json({ message: 'Task updated successfully' });
+} catch (error) {
+    console.error(error.message);
+    next(error);
+  }
+};
+
+// Deleting a task
+const deleteTask = async (req, res, next) => {
   const { id } = req.params;
 
-  const result = await pool.query("DELETE FROM task WHERE id = $1", [id]);
+  try {
+    await pool.query('DELETE FROM task WHERE id = $1', [id]);
 
-  if (result.rowCount === 0)
-    return res.status(404).json({
-      message: "Task not found",
-    });
-  return res.sendStatus(204);
+    res.status(200).json({ message: 'Task deleted successfully' });
+} catch (error) {
+    console.error(error.message);
+    next(error);
+  }
 };
-
-// editando tarea
-const updateTask = async (req, res) => {
-    const { id } = req.params;
-    const { title, description } = req.body;
-  
-    try {
-      const result = await pool.query(
-        "UPDATE task SET title = $1, description = $2 WHERE id = $3",
-        [title, description, id]
-      );
-  
-      if (result.rowCount === 0) {
-        return res.status(404).json({
-          message: "Task not found",
-        });
-      }
-  
-      res.status(200).json({
-        message: "Task updated successfully",
-      });
-    } catch (error) {
-      console.error(error.message);
-      res.status(500).json({
-        message: "An error occurred while updating the task",
-      });
-    }
-  };
-  
-
 
 module.exports = {
   getAllTasks,
   getTask,
   createTask,
-  deleteTask,
   updateTask,
+  deleteTask,
 };
